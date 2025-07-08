@@ -11,7 +11,7 @@
 
 plot_SAS_input <- function(model_parameters, save = FALSE, file_path = NULL){
 
-  require(wesanderson)
+  requireNamespace(wesanderson)
 
   pal <- wes_palette("AsteroidCity2")
 
@@ -34,10 +34,10 @@ plot_SAS_input <- function(model_parameters, save = FALSE, file_path = NULL){
   layout.show(nf)
 
   ps <- seq(0,1,0.01)
-  big_omega_q <- do.call(model_params$SAS_Q_shape,
-                         list(ps, model_params$k_Q))
-  big_omega_et <- do.call(model_params$SAS_ET_shape,
-                          list(ps, model_params$k_ET))
+  big_omega_q <- do.call(model_parameters$SAS_Q_shape,
+                         list(ps, model_parameters$k_Q))
+  big_omega_et <- do.call(model_parameters$SAS_ET_shape,
+                          list(ps, model_parameters$k_ET))
 
   plot(ps,
        big_omega_q,
@@ -49,8 +49,8 @@ plot_SAS_input <- function(model_parameters, save = FALSE, file_path = NULL){
         big_omega_et,
         col = pal[5])
   legend("bottomright",
-         legend = c(bquote(Omega[Q] == .(model_params$k_Q)),
-                    bquote(Omega[ET] == .(model_params$k_ET))),
+         legend = c(bquote(Omega[Q] == .(model_parameters$k_Q)),
+                    bquote(Omega[ET] == .(model_parameters$k_ET))),
          lty = 1,
          col = pal[c(3,5)])
 
@@ -68,14 +68,14 @@ plot_SAS_input <- function(model_parameters, save = FALSE, file_path = NULL){
         lil_omega_et,
         col = pal[5])
   legend("topright",
-         legend = c(bquote(omega[Q] == .(model_params$k_Q)),
-                    bquote(omega[ET] == .(model_params$k_ET))),
+         legend = c(bquote(omega[Q] == .(model_parameters$k_Q)),
+                    bquote(omega[ET] == .(model_parameters$k_ET))),
          lty = 1,
          col = pal[c(3,5)])
 
-  if(max(model_params$inputdata$Q)*10 > max(model_params$inputdata$J)){
+  if(max(model_parameters$inputdata$Q)*10 > max(model_parameters$inputdata$J)){
     plot(J ~ dates,
-         data = model_params$inputdata,
+         data = model_parameters$inputdata,
          type = "o",
          lwd = 2,
          col = pal[1],
@@ -84,18 +84,18 @@ plot_SAS_input <- function(model_parameters, save = FALSE, file_path = NULL){
          xlab = "Date",
          main = "Model Input: Flows")
     lines(I(Q) ~ dates,
-          data = model_params$inputdata,
+          data = model_parameters$inputdata,
           col = pal[3],
           lwd = 2,
           type = "o")
     lines(I(ET) ~ dates,
-          data = model_params$inputdata,
+          data = model_parameters$inputdata,
           col = pal[5],
           lwd = 2,
           type = "o")
   }else{
     plot(J ~ dates,
-         data = model_params$inputdata,
+         data = model_parameters$inputdata,
          type = "o",
          lwd = 2,
          col = pal[1],
@@ -110,17 +110,17 @@ plot_SAS_input <- function(model_parameters, save = FALSE, file_path = NULL){
           side = 4,
           line = 2.5)
     lines(I(Q*10) ~ dates,
-          data = model_params$inputdata,
+          data = model_parameters$inputdata,
           col = pal[3],
           lwd = 2,
           type = "o")
     lines(I(ET*10) ~ dates,
-          data = model_params$inputdata,
+          data = model_parameters$inputdata,
           col = pal[5],
           lwd = 2,
           type = "o")
   }
-  if(anyNA(model_params$inputdata$wi)){
+  if(anyNA(model_parameters$inputdata$wi)){
     legend("topright",
            c("J", "Q", "ET"),
            col = pal[c(1,3,5)],
@@ -140,75 +140,75 @@ plot_SAS_input <- function(model_parameters, save = FALSE, file_path = NULL){
            lty = 1,
            cex = 1.3)
   }
-  abline(v = model_params$age_distributions,
+  abline(v = model_parameters$age_distributions,
          lty = 4,
-         col = hcl.colors(length(model_params$age_distributions), "Purp"),
+         col = hcl.colors(length(model_parameters$age_distributions), "Purp"),
          lwd = 3)
   legend("right",
-         as.character(paste0(month(model_params$age_distributions,
+         as.character(paste0(month(model_parameters$age_distributions,
                                    label = T,
                                    abbr= T),
                              "-",
-                             day(model_params$age_distributions))),
+                             day(model_parameters$age_distributions))),
          lty = 4,
          lwd = 3,
-         col = hcl.colors(length(model_params$age_distributions), "Purp"),
+         col = hcl.colors(length(model_parameters$age_distributions), "Purp"),
          title = "Water Ages Output:",
          cex = 1)
 
 
   plot(C_J ~ dates,
-       data = model_params$inputdata,
+       data = model_parameters$inputdata,
        type = "o",
        col = pal[2],
        pch = 16,
        ylab = "C [mg/L]",
        xlab = "Date",
        main = "Model Input: Rain Concentration")
-  abline(v = model_params$age_distributions,
+  abline(v = model_parameters$age_distributions,
          lty = 4,
-         col = hcl.colors(length(model_params$age_distributions), "Purp"),
+         col = hcl.colors(length(model_parameters$age_distributions), "Purp"),
          lwd = 3)
   legend("right",
-         as.character(paste0(month(model_params$age_distributions,
+         as.character(paste0(month(model_parameters$age_distributions,
                                    label = T,
                                    abbr= T),
                              "-",
-                             day(model_params$age_distributions))),
+                             day(model_parameters$age_distributions))),
          lty = 4,
          lwd = 3,
-         col = hcl.colors(length(model_params$age_distributions), "Purp"),
+         col = hcl.colors(length(model_parameters$age_distributions), "Purp"),
          title = "Water Ages Output:",
          cex = 1)
 
   ### STORAGE CHANGES
-  delta_S <- model_params$inputdata$J - model_params$inputdata$Q - model_params$inputdata$ET
+  delta_S <- model_parameters$inputdata$J - model_parameters$inputdata$Q - model_parameters$inputdata$ET
 
-  storage <- numeric(length(model_params$inputdata$J))
-  storage[1] <- model_params$S0 + delta_S[1]
+  storage <- numeric(length(model_parameters$inputdata$J))
+  storage[1] <- model_parameters$S0 + delta_S[1]
 
-  for(i in 2:length(model_params$inputdata$J)){
+  for(i in 2:length(model_parameters$inputdata$J)){
     storage[i] <- storage[i-1] + delta_S[i]
   }
-  plot(model_params$inputdata$dates,
+  plot(model_parameters$inputdata$dates,
        storage,
        ylab = "S [mm]",
        xlab = "Date",
        col = pal[4],
        main = "Storage Change")
-  abline(v = model_params$age_distributions,
+  abline(v = model_parameters$age_distributions,
          lty = 4,
-         col = hcl.colors(length(model_params$age_distributions), "Purp"),
+         col = hcl.colors(length(model_parameters$age_distributions), "Purp"),
          lwd = 3)
   legend("right",
-         as.character(paste0(month(model_params$age_distributions,
+         as.character(paste0(month(model_parameters$age_distributions,
                                    label = T,
                                    abbr= T),
                              "-",
-                             day(model_params$age_distributions))),
+                             day(model_parameters$age_distributions))),
          lty = 4,
          lwd = 3,
-         col = hcl.colors(length(model_params$age_distributions), "Purp"),
+         col = hcl.colors(length(model_parameters$age_distributions), "Purp"),
          title = "Water Ages Output:",
          cex = 1)
   if(save){

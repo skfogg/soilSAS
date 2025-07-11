@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_SAS_input.R
 \name{plot_SAS_input}
 \alias{plot_SAS_input}
-\title{Plots soil SAS inputs}
+\title{standardized SAS input plot}
 \usage{
 plot_SAS_input(model_parameters, save = FALSE, file_path = NULL)
 }
@@ -14,5 +14,13 @@ plot_SAS_input(model_parameters, save = FALSE, file_path = NULL)
 \item{file_path}{used only if save = TRUE. The file path (including plot name) to be saved}
 }
 \description{
-Produces plots of the inputs to the SAS model
+Produces plots of the inputs to the SAS model.
+}
+\details{
+The input plots included are: (1) the CDFs of the transit time distributions for Q and ET,
+(2) the PDFs of the transit time distribution for Q and ET, (3) Model flow inputs (including J, Q, and ET),
+(4) concentration input (C), and (5) the change in storage (S) of the system.
+}
+\seealso{
+plot_sas_output
 }

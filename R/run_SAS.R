@@ -1,51 +1,68 @@
-run_SAS <- function(model_parameters){
+#' run a SAS model
+#'
+#' @param model_parameters a list of the model parameters. See Details.
+#'
+#' @returns returns a list with model_parameters and model_output
+#'
+#' @seealso [example_1_params], [plot_SAS_input()], and [plot_SAS_output()]
+#'
+#' @examples
+#' data("example_1_params")
+#' ex1model <- run_SAS(example_1_params)
+#' #plot_SAS_input(ex1model$model_parameters)
+#' #plot_SAS_output(ex1model$model_output)
+#'
+#' @export
+#'
+#'
+run_SAS <- function(model_parameters = example_1_params){
+
+  requireNamespace("wesanderson")
+  requireNamespace("lubridate")
 
   ##  INPUT WARNINGS
   if(is.list(model_parameters) == FALSE){
-    stop("Model parameters are not a list. Model parameters must be in a list with an 'inputdata' dataframe, and the following named parameters: 'S0', 'C_S0', 'dt', 'SAS_Q_shape', 'SAS_ET_shape', 'k_Q', 'k_ET', f_thresh', 'age_distributions', 'conservative', 'decay_rate'.")
+    stop("Model parameters are not a list. Model parameters must be in a list with an 'inputdata' dataframe, and the following named parameters: 'S0', 'C_S0', 'dt', 'SAS_Q_shape', 'SAS_ET_shape', 'shape_params_Q', 'shape_params_ET', f_thresh', 'age_distributions', 'conservative', 'decay_rate'.")
   }
-  if(any(colnames(model_parameterss$inputdata) != c("dates", "J", "Q", "ET", "wi", "C_J"))){
-    stop("Input data columns missing or incorrect. Column names must be: 'dates', 'J', 'Q', 'ET', 'wi', 'C_J'.")
+  if(any(colnames(model_parameters$inputdata) != c("dates", "J", "Q", "ET", "WI", "C_J"))){
+    stop("Input data columns missing or incorrect. Column names must be: 'dates', 'J', 'Q', 'ET', 'WI', 'C_J'.")
   }
-  if(any(names(model_parameters) != c("inputdata", "S0", "C_S0", "dt", "SAS_Q_shape", "SAS_ET_shape", "k_Q", "k_ET",
+  if(any(names(model_parameters) != c("inputdata", "S0", "C_S0", "dt", "SAS_Q_shape",
+                                      "SAS_ET_shape", "shape_params_Q", "shape_params_ET",
                                       "f_thresh", "age_distributions", "conservative", "decay_rate"))){
-    stop("Model parameters missing or named incorrectly. Model parameters must be in a list with an 'inputdata' dataframe, and the following named parameters: 'S0', 'C_S0', 'dt', 'SAS_Q_shape', 'SAS_ET_shape', 'k_Q', 'k_ET', f_thresh', 'age_distributions', 'conservative', 'decay_rate'.")
+    stop("Model parameters missing or named incorrectly. Model parameters must be in a list with an 'inputdata' dataframe, and the following named parameters: 'S0', 'C_S0', 'dt', 'SAS_Q_shape', 'SAS_ET_shape', 'shape_params_Q', 'shape_params_ET', f_thresh', 'age_distributions', 'conservative', 'decay_rate'.")
   }
   if(is.data.frame(model_parameters$inputdata) == FALSE | is.list(model_parameters$inputdata) == FALSE){
     stop("Model input data must be a data frame or named list.")
   }
-  if(any(is.numeric(model_parameters$S0),
+  if(!any(is.numeric(model_parameters$S0),
          is.numeric(model_parameters$C_S0),
          is.numeric(model_parameters$dt),
-         is.numeric(model_parameters$k_Q),
-         is.numeric(model_parameters$k_ET),
+         is.numeric(model_parameters$shape_params_Q),
+         is.numeric(model_parameters$shape_params_ET),
          is.numeric(model_parameters$f_thresh),
          is.numeric(model_parameters$decay_rate),
          is.character(model_parameters$SAS_Q_shape),
          is.character(model_parameters$SAS_ET_shape),
-         is.POSIXt(model_parameters$age_distributions),
+         # is.POSIXt(model_parameters$age_distributions),
          is.logical(model_parameters$conservative))){
     stop("Model parameter class error.
-         Numeric parameters: 'S0', 'C_S0', 'dt', 'k_Q', 'k_ET', f_thresh', decay_rate'.
+         Numeric parameters: 'S0', 'C_S0', 'dt', 'shape_params_Q', 'shape_params_ET', f_thresh', decay_rate'.
          Character parameters: 'SAS_Q_shape', 'SAS_ET_shape'.
          POSIXt parameters: 'age_distributions'.
          Logical parameters: 'conservative'.")
   }
-  if(!model_parameters$SAS_Q_shape %in% c("fSAS_beta", "fSAS_invpl", "fSAS_normtr", "fSAS_pl", "fSAS_pltv", "fSAS_step") |
-     !model_parameters$SAS_ET_shape %in% c("fSAS_beta", "fSAS_invpl", "fSAS_normtr", "fSAS_pl", "fSAS_pltv", "fSAS_step")){
-    stop("SAS shape not available.")
+  if(!model_parameters$SAS_Q_shape %in% c("shape_beta", "shape_inv_pl", "shape_norm_truc", "shape_pl", "shape_pl_tv", "shape_step") |
+     !model_parameters$SAS_ET_shape %in% c("shape_beta", "shape_inv_pl", "shape_norm_truc", "shape_pl", "shape_pl_tv", "shape_step")){
+    stop("SAS shape not available. Choose from: 'shape_beta', 'shape_inv_pl', 'shape_norm_truc', 'shape_pl', 'shape_pl_tv', 'shape_step'.")
   }
 
-
-  ## GET SAS SHAPE FUNCTIONS
-  source(paste0("./trans_SAS/Source/functions/", model_parameters$SAS_Q_shape,".R"))
-  source(paste0("./trans_SAS/Source/functions/", model_parameters$SAS_ET_shape,".R"))
 
   inputdata <- model_parameters$inputdata
 
   # assign CALIBRATION parameters
-  parQ  <- model_parameters$k_Q
-  parET <- model_parameters$k_ET
+  parQ  <- model_parameters$shape_params_Q
+  parET <- model_parameters$shape_params_ET
   S0 <- model_parameters$S0
 
   # set a few constants
@@ -65,8 +82,9 @@ run_SAS <- function(model_parameters){
   length_s <- 1                                                        # rank storage vector length
   S_T[1]   <- S0                                                       # initial rank storage [mm]
   C_ST[1]  <- model_parameters$C_S0                                                # mean concentration of the initial rank storage
-  Omega_Q  <- do.call(model_parameters$SAS_Q_shape, list(Ps = S_T[1:length_s]/S_T[1], par = parQ, wi = model_parameters$inputdata$wi[1]))   # [-]
-  Omega_ET <- do.call(model_parameters$SAS_ET_shape, list(Ps = S_T[1:length_s]/S_T[1], par = parET, wi = model_parameters$inputdata$wi[1]))
+  Omega_Q  <- do.call(model_parameters$SAS_Q_shape, list(P_s = S_T[1:length_s]/S_T[1],
+                                                         parameters = parQ, wetness = model_parameters$inputdata$WI[1]))   # [-]
+  Omega_ET <- do.call(model_parameters$SAS_ET_shape, list(P_s = S_T[1:length_s]/S_T[1], parameters = parET, wetness = model_parameters$inputdata$WI[1]))
 
   #--------------------------------------------------------------------------
   # MODEL LOOPS
@@ -83,8 +101,8 @@ run_SAS <- function(model_parameters){
     dom  <- (c(0, S_T[1:length_s]) + age1) / (S_T[length_s] + age1) # rescaled domain
 
     # 1) evaluate the SAS functions Omega over the domain 'dom'
-    Omega_Q  <- do.call(model_parameters$SAS_Q_shape, list(dom, parQ, inputdata$wi[j])) # [-]
-    Omega_ET <- do.call(model_parameters$SAS_ET_shape, list(dom, parET, inputdata$wi[j])) # [-]
+    Omega_Q  <- do.call(model_parameters$SAS_Q_shape, list(dom, parQ, inputdata$WI[j])) # [-]
+    Omega_ET <- do.call(model_parameters$SAS_ET_shape, list(dom, parET, inputdata$WI[j])) # [-]
 
     # 2) solve the water age balance (S_T = rank storage)
     S_T[1:(length_s + 1)] <- pmax(0, c(0, S_T[1:length_s]) +
@@ -95,12 +113,12 @@ run_SAS <- function(model_parameters){
     }
 
     # 3) update solute concentration for each parcel
-    if(conservative){
+    if(model_parameters$conservative){
       # conservative transport:
       C_ST[2:(length_s + 1)] <- C_ST[1:length_s]
     }else{
       # non-conservative transport:
-      C_ST[2:(length_s + 1)] <- C_ST[1:length_s] * decay_rate
+      C_ST[2:(length_s + 1)] <- C_ST[1:length_s] * model_parameters$decay_rate
     }
 
 
@@ -168,6 +186,6 @@ run_SAS <- function(model_parameters){
     Omega_ET = Omega_ET
   )
 
-  return(list(model_params = model_parameters,
+  return(list(model_parameters = model_parameters,
               output = output))
 }
